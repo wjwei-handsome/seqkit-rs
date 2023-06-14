@@ -3,40 +3,51 @@
 
 mod stats;
 mod logger;
+mod output;
 
 use clap::{Parser, Subcommand};
 use crate::logger::init_logger;
 use crate::stats::stats_all;
+use crate::output::output_writer;
 
 fn main() {
     init_logger();
     let cli = Cli::parse();
+    // process outfile, if `-` then stdout, else write to file, or gzip file
+    let outfile = cli.outfile;
+    println!("outfile: {}", outfile);
+    let mut writer = output_writer(&outfile);
+    println!("if rewrite: {}", cli.rewrite);
     match &cli.command {
-        Commands::Stats { input, output, rewrite } => {
-            stats_all(input, output, *rewrite);
+        Commands::Stats { input } => {
+            stats_all(input, &mut writer);
         }
     }
 }
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = "seqkit in rust", long_about)]
 struct Cli {
-    #[command(subcommand)]
+    /// Output file ("-" for stdout)
+    #[arg(long, short, global = true, default_value = "-")]
+    outfile: String,
+    /// Rewrite output file [default: false]
+    #[arg(long, short, global = true, default_value = "false")]
+    rewrite: bool,
+    /// Subcommands
+    #[command(subcommand, name = "ww")]
     command: Commands,
+
 }
 
 #[derive(Subcommand)]
 enum Commands {
     /// Print statistics of the fastx file
+    #[command(visible_alias = "stat")]
     Stats {
         /// Input fastx file
         #[arg(short, long, required = false)]
         input: Option<String>,
-        /// Output file path, if not set, output to STDOUT
-        #[arg(short, long, required = false)]
-        output: Option<String>,
-        /// Rewrite output file, default is false
-        #[arg(short, long, default_value = "false", required = false)]
-        rewrite: bool,
     },
+
 }
