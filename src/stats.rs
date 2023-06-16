@@ -38,9 +38,39 @@ fn float2(n: &f64) -> String {
 }
 
 
-/// compute the statistics of a fastx file
-pub fn stats_all(input: &Option<String>, writer: &mut dyn Write) {
+/// public function to stat all inputs in parallel
+pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write) {
 
+    let result_vec = match input_list {
+        Some(input_list) =>
+            {
+                input_list
+                .par_iter()
+                .map(|input|
+                    {
+                        stat(&Some(input.clone())) // just clone it;light mem
+                    }
+                )
+                .collect::<Vec<_>>()
+            },
+        None =>
+            {
+                vec![stat(&None)]
+            }
+    };
+
+    let mut table = Table::new(&result_vec);
+    // let raw_tsv_style = Style::empty().remove_horizontals();
+    // table.with(raw_tsv_style);
+    table.with(Style::markdown());
+    writeln!(writer, "{}", table).unwrap();
+
+}
+
+
+/// get statistics of a single input
+fn stat(input: &Option<String>) -> FastxStat {
+    // get input reader
     let mut input_reader = input_reader(input);
 
     let filename = match input {
@@ -55,8 +85,8 @@ pub fn stats_all(input: &Option<String>, writer: &mut dyn Write) {
 
     // start to read first record and get format
     let first_rec = if
-        let Some(first_rec) = input_reader.next() { first_rec }
-        else { panic!("invalid record") };
+    let Some(first_rec) = input_reader.next() { first_rec }
+    else { panic!("invalid record") };
     let first_seq_rec = first_rec.expect("invalid record");
     let format = first_seq_rec.format();
     let file_format = if let Format::Fasta = format { "fasta" } else { "fastq" };
@@ -85,7 +115,7 @@ pub fn stats_all(input: &Option<String>, writer: &mut dyn Write) {
     let avg_len = sum_len as f64 / num_seqs as f64;
     let (min_len, max_len, q1, q2, q3, n50) = quartiles_n50_min_max(&mut len_vec, sum_len, num_seqs);
 
-    let result = FastxStat {
+    FastxStat {
         filename: filename.to_string(),
         format: file_format.to_string(),
         num_seqs,
@@ -100,16 +130,9 @@ pub fn stats_all(input: &Option<String>, writer: &mut dyn Write) {
         n50,
         q20: 0.0,
         q30: 0.0,
-    };
-
-    // init a output table
-    let mut table = Table::new(&[result]);
-    // control style
-    table.with(Style::blank());
-    // output to writer
-    writer.write_all(table.to_string().as_bytes()).unwrap();
-
+    }
 }
+
 
 /// count N/n bases in parallel, 78 for N, 110 for n
 fn count_n_bases_para(seq: Cow<[u8]>) -> usize {
