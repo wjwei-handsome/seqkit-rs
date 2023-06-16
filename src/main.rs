@@ -1,23 +1,25 @@
+extern crate core;
+
 #[warn(non_camel_case_types)]
 
 
 mod stats;
 mod logger;
-mod output;
+mod io;
 
 use clap::{Parser, Subcommand};
 use crate::logger::init_logger;
 use crate::stats::stats_all;
-use crate::output::output_writer;
+use crate::io::output_writer;
 
 fn main() {
     init_logger();
     let cli = Cli::parse();
     // process outfile, if `-` then stdout, else write to file, or gzip file
     let outfile = cli.outfile;
-    println!("outfile: {}", outfile);
-    let mut writer = output_writer(&outfile);
-    println!("if rewrite: {}", cli.rewrite);
+    // println!("outfile: {}", outfile);
+    let mut writer = output_writer(&outfile, cli.rewrite);
+    // println!("if rewrite: {}", cli.rewrite);
     match &cli.command {
         Commands::Stats { input } => {
             stats_all(input, &mut writer);
