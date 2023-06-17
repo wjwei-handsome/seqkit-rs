@@ -1,13 +1,8 @@
-extern crate core;
-
-#[warn(non_camel_case_types)]
-
-
 mod stats;
 mod logger;
 mod io;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use crate::logger::init_logger;
 use crate::stats::{stat_all_inputs};
 use crate::io::output_writer;
@@ -16,15 +11,12 @@ fn main() {
     init_logger();
     let cli = Cli::parse();
     // process outfile, if `-` then stdout, else write to file, or gzip file
+    // TODO: add gzip support
     let outfile = cli.outfile;
-    // println!("outfile: {}", outfile);
     let mut writer = output_writer(&outfile, cli.rewrite);
-    // println!("if rewrite: {}", cli.rewrite);
     match &cli.command {
-        Commands::Stats { input } => {
-            // println!("input: {:?}", input);
-            // stats_all(input, &mut writer);
-            stat_all_inputs(input, &mut writer);
+        Commands::Stats { input, format } => {
+            stat_all_inputs(input, &mut writer, format);
         }
     }
 }
@@ -59,9 +51,18 @@ enum Commands {
     /// Print statistics of the fastx file
     #[command(visible_alias = "stat")]
     Stats {
-        /// Input FAST[A,Q] file
-        #[arg(required = false, global = true)]
+        /// Input FAST[A,Q] files, None for STDIN
+        #[arg(required = false)]
         input: Option<Vec<String>>,
+        /// Output format,
+        #[arg(long, short, default_value = "markdown")]
+        format: PrintFormat,
     },
 
+}
+
+#[derive(ValueEnum, Clone, Debug)]
+pub enum PrintFormat {
+    Tabular,
+    Markdown,
 }
