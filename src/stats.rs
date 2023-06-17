@@ -3,8 +3,9 @@ use std::io::Write;
 use rayon::prelude::*;
 use needletail::parser::Format;
 use tabled::{Tabled, Table};
-use tabled::settings::Style;
+use tabled::settings::{Alignment, Padding, Style};
 use crate::io::input_reader;
+use crate::PrintFormat;
 
 // define a tabled struct for display and output
 #[derive(Tabled)]
@@ -39,7 +40,7 @@ fn float2(n: &f64) -> String {
 
 
 /// public function to stat all inputs in parallel
-pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write) {
+pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write, format: &PrintFormat) {
 
     let result_vec = match input_list {
         Some(input_list) =>
@@ -60,9 +61,16 @@ pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write)
     };
 
     let mut table = Table::new(&result_vec);
-    // let raw_tsv_style = Style::empty().remove_horizontals();
-    // table.with(raw_tsv_style);
-    table.with(Style::markdown());
+
+    if let PrintFormat::Tabular = format {
+        table
+            .with(Style::empty().vertical('\t'))
+            .with(Alignment::left())
+            .with(Padding::zero());
+    } else {
+        table.with(Style::markdown());
+    }
+
     writeln!(writer, "{}", table).unwrap();
 
 }
