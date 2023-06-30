@@ -3,6 +3,9 @@ use std::io::{BufWriter, stdout, Write};
 use std::path::Path;
 use log::{warn, error};
 use needletail::{FastxReader, parse_fastx_file, parse_fastx_stdin};
+use tabled::Table;
+use tabled::settings::{Alignment, Padding, Style};
+use crate::PrintFormat;
 
 
 /// check if output file exists and if rewrite
@@ -40,7 +43,7 @@ pub fn input_reader(input: &Option<String>) -> Box<dyn FastxReader>{
             match parse_fastx_file(input) {
                 Ok(reader) => reader,
                 Err(err) => {
-                    error!("{}", err);
+                    error!("{}-`{}`", err, input);
                     std::process::exit(1);
                 }
             }
@@ -54,4 +57,19 @@ pub fn input_reader(input: &Option<String>) -> Box<dyn FastxReader>{
             parse_fastx_stdin().expect("valid stdin, please contact author")
         }
     }
+}
+
+pub fn format_table_style(mut table: Table, format: &PrintFormat) -> Table {
+    match format {
+        PrintFormat::Markdown => {
+            table.with(Style::markdown());
+        },
+        PrintFormat::Tabular => {
+            table
+                .with(Style::empty().vertical('\t'))
+                .with(Alignment::left())
+                .with(Padding::zero());
+        }
+    }
+    table
 }

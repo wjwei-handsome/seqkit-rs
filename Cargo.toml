@@ -11,6 +11,8 @@ atty = "0.2.14"
 clap = { version = "4.3.1", features = ["derive"] }
 log = "0.4.18"
 log4rs = "1.2.0"
-needletail = { version = "0.5.1", features = ["compression"] }
+memchr = "2.5.0"
+#needletail = { version = "0.5.1", features = ["compression"] }
+needletail = {git = "https://github.com/wjwei-handsome/needletail.git", branch = "add_faidx"}
 rayon = "1.7.0"
 tabled = "0.12.2"

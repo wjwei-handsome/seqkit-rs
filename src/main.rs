@@ -1,8 +1,10 @@
 mod stats;
 mod logger;
 mod io;
+mod faidx;
 
 use clap::{Parser, Subcommand, ValueEnum};
+use crate::faidx::{create, extract};
 use crate::logger::init_logger;
 use crate::stats::{stat_all_inputs};
 use crate::io::output_writer;
@@ -17,7 +19,17 @@ fn main() {
     match &cli.command {
         Commands::Stats { input, format } => {
             stat_all_inputs(input, &mut writer, format);
-        }
+        },
+        Commands::Faidx { input, regions, .. } => {
+            match regions {
+                Some(regions) => {
+                    extract(input, regions);
+                }
+                None => {
+                    create(input, cli.rewrite);
+                }
+            }
+        },
     }
 }
 
@@ -57,6 +69,16 @@ enum Commands {
         /// Output format,
         #[arg(long, short, default_value = "markdown")]
         format: PrintFormat,
+    },
+    /// create FASTA index file and extract subsequence
+    #[command(visible_alias = "fai")]
+    Faidx {
+        /// Input FASTA file
+        #[arg(required = true)]
+        input: String,
+        /// Regions to extract, e.g. chr1:1-100
+        #[arg(required = false)]
+        regions: Option<Vec<String>>,
     },
 
 }

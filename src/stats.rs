@@ -2,9 +2,8 @@ use std::borrow::Cow;
 use std::io::Write;
 use rayon::prelude::*;
 use needletail::parser::Format;
-use tabled::{Tabled, Table};
-use tabled::settings::{Alignment, Padding, Style};
-use crate::io::input_reader;
+use tabled::{Table, Tabled};
+use crate::io::{input_reader, format_table_style};
 use crate::PrintFormat;
 
 // define a tabled struct for display and output
@@ -62,14 +61,7 @@ pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write,
 
     let mut table = Table::new(&result_vec);
 
-    if let PrintFormat::Tabular = format {
-        table
-            .with(Style::empty().vertical('\t'))
-            .with(Alignment::left())
-            .with(Padding::zero());
-    } else {
-        table.with(Style::markdown());
-    }
+    table = format_table_style(table, format);
 
     writeln!(writer, "{}", table).unwrap();
 
