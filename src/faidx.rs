@@ -2,14 +2,14 @@ use core::fmt;
 use std::io::Write;
 use log::{error, info, warn};
 use needletail::parser::{Format, IndexedReader, SequenceRecord};
-use crate::io::{input_reader, output_writer};
+use crate::io::{format_fasta_output, input_reader, output_writer};
 use memchr::memchr;
 use std::str;
 use regex::Regex;
 
-pub fn extract(input: &String, regions: &Vec<String>) {
-
+pub fn extract(input: &String, regions: &Vec<String>, writer: &mut dyn Write, line_width: Option<u8>) {
     check_suffix(input);
+
     let mut fai_reader = match IndexedReader::from_path(input) {
         Ok(reader) => reader,
         Err(err) => {
@@ -42,7 +42,7 @@ pub fn extract(input: &String, regions: &Vec<String>) {
                 continue
             }
         };
-        let subseq = match fai_reader.subseq(
+        let mut subseq = match fai_reader.subseq(
             positive_region.name.as_str(),
             Some(positive_region.start as u64 - 1),
             Some(positive_region.end as u64)
@@ -53,48 +53,12 @@ pub fn extract(input: &String, regions: &Vec<String>) {
                 continue
             }
         };
-        println!("{}", subseq);
+        subseq.start += 1; // display for 1-based
+        // println!("{}", subseq);
+        let header = format!(">{}:{}-{}", subseq.name, subseq.start, subseq.end);
+        let seq = subseq.seq;
+        format_fasta_output(&header, &seq, line_width, writer);
         }
-        // println!("{}", positive_region);
-        // if region.start < 0 {
-        //     println!("start < 0 : todo");
-        //     if region.end < -region.start {
-        //         // exp: 1 - -2
-        //         println!("start < 0 || end < -start : todo");
-        //     } else {
-        //         // exp: 1 - -1
-        //         println!("start < 0 || end >= -start : todo");
-        //     }
-        // } else if region.start == 0 {
-        //     println!("start == 0 : todo");
-        // } else {
-        //     if region.end == 0 {
-        //         // exp: 1 - 0
-        //         println!("start > 0 || end == 0 : todo");
-        //     } else if region.end < 0 {
-        //         // exp: 2 - -1
-        //         println!("start > 0 || end < 0 : todo");
-        //     } else {
-        //         // 1 - 8
-        //         if region.start <= region.end {
-        //             let subseq = match fai_reader.subseq(
-        //                 region.name.as_str(),
-        //                 Some(region.start as u64 - 1),
-        //                 Some(region.end as u64)
-        //             ) {
-        //                 Ok(subseq) => subseq,
-        //                 Err(e) => {
-        //                     warn!("Continued: {}", e.msg);
-        //                     continue
-        //                 }
-        //             };
-        //             println!("{}", subseq);
-        //         } else {
-        //             // 6 - 2
-        //             warn!("Continued: Invalid Input Region: `{}`", region)
-        //         }
-        //     }
-        // }
 }
 
 #[derive(Debug)]
@@ -253,7 +217,10 @@ fn fill_index_records(
         *offset,
         first_next_line,
         first_next_line + 1,
-    ).expect("TODO: panic message");
+    ).map_err(|e| {
+        error!("failed to write index file: {}", e);
+        std::process::exit(1);
+    }).unwrap();
 
     *offset += raw_seq.len() as u64 + 1;
 

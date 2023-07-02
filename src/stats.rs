@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::io::Write;
+use log::error;
 use rayon::prelude::*;
 use needletail::parser::Format;
 use tabled::{Table, Tabled};
@@ -63,7 +64,10 @@ pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write,
 
     table = format_table_style(table, format);
 
-    writeln!(writer, "{}", table).unwrap();
+    writeln!(writer, "{}", table).map_err(|e| {
+        error!("write fasta header failed: {}", e);
+        std::process::exit(1);
+    }).unwrap();
 
 }
 

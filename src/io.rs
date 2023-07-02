@@ -73,3 +73,44 @@ pub fn format_table_style(mut table: Table, format: &PrintFormat) -> Table {
     }
     table
 }
+
+fn write_ln(writer: &mut dyn Write, content: &[u8]) {
+    writer.write_all(content).map_err(|e| {
+        error!("Write fasta header failed: {}", e);
+        std::process::exit(1);
+    }).unwrap();
+    writer.write_all(b"\n").map_err(|e| {
+        error!("Write fasta header failed: {}", e);
+        std::process::exit(1);
+    }).unwrap();
+}
+
+pub fn format_fasta_output(header: &str, seq: &Vec<u8>, width: Option<u8>, writer: &mut dyn Write) {
+    // write header
+    write_ln(writer, header.as_bytes());
+    // write seq
+    match width {
+        Some(width) => {
+            if width == 0 {
+                write_ln(writer, seq);
+            }
+            else {
+                let mut i = 0;
+                let len = seq.len();
+                while i < len {
+                let end = if i + width as usize > seq.len() {
+                    len
+                } else {
+                    i + width as usize
+                };
+                let seq_slice = &seq[i..end];
+                write_ln(writer, seq_slice);
+                i += width as usize;
+            }
+            }
+        },
+        None => {
+            write_ln(writer, seq);
+        }
+    };
+}

@@ -25,7 +25,7 @@ fn main() {
         Commands::Faidx { input, regions, .. } => {
             match regions {
                 Some(regions) => {
-                    extract(input, regions);
+                    extract(input, regions, &mut writer, cli.line_width);
                 }
                 None => {
                     create(input, cli.rewrite);
@@ -51,9 +51,12 @@ struct Cli {
     /// Output file ("-" for stdout)
     #[arg(long, short, global = true, default_value = "-")]
     outfile: String,
-    /// Rewrite output file [default: false]
+    /// Bool, if rewrite output file [default: false]
     #[arg(long, short, global = true, default_value = "false")]
     rewrite: bool,
+    /// Line width when outputing FASTA format (0 for no wrap) [default 60]
+    #[arg(long="line-width", short='w', global = true, default_value = "60", required = false)]
+    line_width: Option<u8>,
     /// Subcommands
     #[command(subcommand)]
     command: Commands,
