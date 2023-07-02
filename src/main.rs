@@ -44,7 +44,7 @@ fn main() {
 #[command(
     help_template =
     "{name} -- {about}\n\nVersion: {version}\n\nAuthors: {author}\
-    \n\n{usage-heading} {usage}\n{all-args}"
+    \n\n{usage-heading} {usage}\n\n{all-args}"
     ) // change template more!
 ]
 struct Cli {
@@ -54,7 +54,7 @@ struct Cli {
     /// Bool, if rewrite output file [default: false]
     #[arg(long, short, global = true, default_value = "false")]
     rewrite: bool,
-    /// Line width when outputing FASTA format (0 for no wrap) [default 60]
+    /// Line width when outputing FASTA format (0 for no wrap)
     #[arg(long="line-width", short='w', global = true, default_value = "60", required = false)]
     line_width: Option<u8>,
     /// Subcommands
