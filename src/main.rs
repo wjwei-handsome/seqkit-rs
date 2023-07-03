@@ -47,10 +47,10 @@ fn main() {
 ]
 struct Cli {
     /// Output file ("-" for stdout)
-    #[arg(long, short, global = true, default_value = "-")]
+    #[arg(long, short, global = true, default_value = "-", help_heading = Some("FLAGS"))]
     outfile: String,
     /// Bool, if rewrite output file [default: false]
-    #[arg(long, short, global = true, default_value = "false")]
+    #[arg(long, short, global = true, default_value = "false", help_heading = Some("FLAGS"))]
     rewrite: bool,
     /// Line width when outputing FASTA format (0 for no wrap)
     #[arg(
@@ -58,7 +58,8 @@ struct Cli {
         short = 'w',
         global = true,
         default_value = "60",
-        required = false
+        required = false,
+        help_heading = Some("FLAGS"),
     )]
     line_width: Option<u8>,
     /// Subcommands
