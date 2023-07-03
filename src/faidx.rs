@@ -1,13 +1,18 @@
-use core::fmt;
-use std::io::Write;
-use log::{error, info, warn};
-use needletail::parser::{Format, IndexedReader, SequenceRecord};
 use crate::io::{format_fasta_output, input_reader, output_writer};
+use core::fmt;
+use log::{error, info, warn};
 use memchr::memchr;
-use std::str;
+use needletail::parser::{Format, IndexedReader, SequenceRecord};
 use regex::Regex;
+use std::io::Write;
+use std::str;
 
-pub fn extract(input: &String, regions: &Vec<String>, writer: &mut dyn Write, line_width: Option<u8>) {
+pub fn extract(
+    input: &String,
+    regions: &Vec<String>,
+    writer: &mut dyn Write,
+    line_width: Option<u8>,
+) {
     check_suffix(input);
 
     let mut fai_reader = match IndexedReader::from_path(input) {
@@ -23,10 +28,10 @@ pub fn extract(input: &String, regions: &Vec<String>, writer: &mut dyn Write, li
         // -8 -7 -6 -5 -4 -3 -2 -1
         let region = ExprRegion::from(region_str.clone());
         match fai_reader.fetch(region.name.as_str(), None, None) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(err) => {
                 warn!("Continued: {}", err.msg);
-                continue
+                continue;
             }
         };
         let record_len = fai_reader.fetched_id.as_ref().unwrap().len;
@@ -39,26 +44,26 @@ pub fn extract(input: &String, regions: &Vec<String>, writer: &mut dyn Write, li
             Some(positive_region) => positive_region,
             None => {
                 warn!("Continued: Invalid Input Region: `{}`", region);
-                continue
+                continue;
             }
         };
         let mut subseq = match fai_reader.subseq(
             positive_region.name.as_str(),
             Some(positive_region.start as u64 - 1),
-            Some(positive_region.end as u64)
+            Some(positive_region.end as u64),
         ) {
             Ok(subseq) => subseq,
             Err(e) => {
                 warn!("Continued: {}", e.msg); // In theory, it will not appear.
-                continue
+                continue;
             }
         };
         subseq.start += 1; // display for 1-based
-        // println!("{}", subseq);
+                           // println!("{}", subseq);
         let header = format!(">{}:{}-{}", subseq.name, subseq.start, subseq.end);
         let seq = subseq.seq;
         format_fasta_output(&header, &seq, line_width, writer);
-        }
+    }
 }
 
 #[derive(Debug)]
@@ -148,8 +153,6 @@ impl From<String> for ExprRegion {
     }
 }
 
-
-
 pub fn create(input: &String, rewrite: bool) {
     let fai_file_name = format!("{}.fai", input);
     info!("create index for {}", &input);
@@ -162,12 +165,14 @@ pub fn create(input: &String, rewrite: bool) {
     let mut offset = 0;
 
     // read first record and check format
-    let first_rec = if
-    let Some(first_rec) = input_reader.next() { first_rec }
-    else { panic!("invalid record") };
+    let first_rec = if let Some(first_rec) = input_reader.next() {
+        first_rec
+    } else {
+        panic!("invalid record")
+    };
     let first_seq_rec = first_rec.expect("invalid record");
     match first_seq_rec.format() {
-        Format::Fasta => {},
+        Format::Fasta => {}
         _ => {
             error!("only support fasta format");
             std::process::exit(1);
@@ -185,23 +190,16 @@ pub fn create(input: &String, rewrite: bool) {
     }
 
     info!("Successfully create index file: {}", &fai_file_name);
-
 }
 
 fn get_first_line_pos(raw_seq: &[u8]) -> usize {
     match memchr(b'\n', raw_seq) {
         Some(pos) => pos,
-        None => {
-            raw_seq.len()
-        }
+        None => raw_seq.len(),
     }
 }
 
-fn fill_index_records(
-    record: SequenceRecord,
-    offset: &mut u64,
-    writer: &mut Box<dyn Write>,
-) {
+fn fill_index_records(record: SequenceRecord, offset: &mut u64, writer: &mut Box<dyn Write>) {
     let seq_name_str = str::from_utf8(record.id().clone()).unwrap();
     let seq_name_len = seq_name_str.len() + 1 + 1; // +1 for \n, +1 for >
     *offset += seq_name_len as u64;
@@ -217,13 +215,14 @@ fn fill_index_records(
         *offset,
         first_next_line,
         first_next_line + 1,
-    ).map_err(|e| {
+    )
+    .map_err(|e| {
         error!("failed to write index file: {}", e);
         std::process::exit(1);
-    }).unwrap();
+    })
+    .unwrap();
 
     *offset += raw_seq.len() as u64 + 1;
-
 }
 
 const INVALID_SUFFIX: [&str; 3] = [".gz", ".xz", ".bz2"];

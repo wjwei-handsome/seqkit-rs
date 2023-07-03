@@ -1,11 +1,11 @@
+use crate::io::{format_table_style, input_reader};
+use crate::PrintFormat;
+use log::error;
+use needletail::parser::Format;
+use rayon::prelude::*;
 use std::borrow::Cow;
 use std::io::Write;
-use log::error;
-use rayon::prelude::*;
-use needletail::parser::Format;
 use tabled::{Table, Tabled};
-use crate::io::{input_reader, format_table_style};
-use crate::PrintFormat;
 
 // define a tabled struct for display and output
 #[derive(Tabled)]
@@ -38,39 +38,37 @@ fn float2(n: &f64) -> String {
     format!("{:.2}", n)
 }
 
-
 /// public function to stat all inputs in parallel
-pub fn stat_all_inputs(input_list: &Option<Vec<String>>, writer: &mut dyn Write, format: &PrintFormat) {
-
+pub fn stat_all_inputs(
+    input_list: &Option<Vec<String>>,
+    writer: &mut dyn Write,
+    format: &PrintFormat,
+) {
     let result_vec = match input_list {
-        Some(input_list) =>
-            {
-                input_list
+        Some(input_list) => {
+            input_list
                 .par_iter()
-                .map(|input|
-                    {
-                        stat(&Some(input.clone())) // just clone it;light mem
-                    }
-                )
+                .map(|input| {
+                    stat(&Some(input.clone())) // just clone it;light mem
+                })
                 .collect::<Vec<_>>()
-            },
-        None =>
-            {
-                vec![stat(&None)]
-            }
+        }
+        None => {
+            vec![stat(&None)]
+        }
     };
 
     let mut table = Table::new(&result_vec);
 
     table = format_table_style(table, format);
 
-    writeln!(writer, "{}", table).map_err(|e| {
-        error!("write fasta header failed: {}", e);
-        std::process::exit(1);
-    }).unwrap();
-
+    writeln!(writer, "{}", table)
+        .map_err(|e| {
+            error!("write fasta header failed: {}", e);
+            std::process::exit(1);
+        })
+        .unwrap();
 }
-
 
 /// get statistics of a single input
 fn stat(input: &Option<String>) -> FastxStat {
@@ -88,12 +86,18 @@ fn stat(input: &Option<String>) -> FastxStat {
     let mut len_vec = Vec::new();
 
     // start to read first record and get format
-    let first_rec = if
-    let Some(first_rec) = input_reader.next() { first_rec }
-    else { panic!("invalid record") };
+    let first_rec = if let Some(first_rec) = input_reader.next() {
+        first_rec
+    } else {
+        panic!("invalid record")
+    };
     let first_seq_rec = first_rec.expect("invalid record");
     let format = first_seq_rec.format();
-    let file_format = if let Format::Fasta = format { "fasta" } else { "fastq" };
+    let file_format = if let Format::Fasta = format {
+        "fasta"
+    } else {
+        "fastq"
+    };
     let seq_len = first_seq_rec.num_bases();
     len_vec.push(seq_len);
     sum_len += seq_len; // sum_len
@@ -117,7 +121,8 @@ fn stat(input: &Option<String>) -> FastxStat {
     }
 
     let avg_len = sum_len as f64 / num_seqs as f64;
-    let (min_len, max_len, q1, q2, q3, n50) = quartiles_n50_min_max(&mut len_vec, sum_len, num_seqs);
+    let (min_len, max_len, q1, q2, q3, n50) =
+        quartiles_n50_min_max(&mut len_vec, sum_len, num_seqs);
 
     FastxStat {
         filename: filename.to_string(),
@@ -137,19 +142,18 @@ fn stat(input: &Option<String>) -> FastxStat {
     }
 }
 
-
 /// count N/n bases in parallel, 78 for N, 110 for n
 fn count_n_bases_para(seq: Cow<[u8]>) -> usize {
-    let n_base_count = seq
-        .par_iter()
-        .filter(|&&x| x == 78 || x == 110)
-        .count() as usize;
+    let n_base_count = seq.par_iter().filter(|&&x| x == 78 || x == 110).count() as usize;
     n_base_count
 }
 
 //// compute the quartiles and n50
-fn quartiles_n50_min_max(len_vec: &mut Vec<usize>, sum_len: usize, num_seqs: usize) -> (usize, usize, usize, usize, usize, usize) {
-
+fn quartiles_n50_min_max(
+    len_vec: &mut Vec<usize>,
+    sum_len: usize,
+    num_seqs: usize,
+) -> (usize, usize, usize, usize, usize, usize) {
     len_vec.sort_unstable();
 
     let min_len = len_vec[0];
@@ -181,5 +185,4 @@ fn quartiles_n50_min_max(len_vec: &mut Vec<usize>, sum_len: usize, num_seqs: usi
     let n50 = len_vec[n50_offset];
 
     (min_len, max_len, q1, q2, q3, n50)
-
 }

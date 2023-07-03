@@ -1,12 +1,11 @@
-use std::fs::File;
-use std::io::{BufWriter, stdout, Write};
-use std::path::Path;
-use log::{warn, error};
-use needletail::{FastxReader, parse_fastx_file, parse_fastx_stdin};
-use tabled::Table;
-use tabled::settings::{Alignment, Padding, Style};
 use crate::PrintFormat;
-
+use log::{error, warn};
+use needletail::{parse_fastx_file, parse_fastx_stdin, FastxReader};
+use std::fs::File;
+use std::io::{stdout, BufWriter, Write};
+use std::path::Path;
+use tabled::settings::{Alignment, Padding, Style};
+use tabled::Table;
 
 /// check if output file exists and if rewrite
 fn outfile_exist(output_file: &String, rewrite: bool) {
@@ -24,7 +23,6 @@ fn outfile_exist(output_file: &String, rewrite: bool) {
     }
 }
 
-
 /// get output writer
 pub fn output_writer(output_file: &String, rewrite: bool) -> Box<dyn Write> {
     if output_file == "-" {
@@ -37,15 +35,13 @@ pub fn output_writer(output_file: &String, rewrite: bool) -> Box<dyn Write> {
 }
 
 /// get input reader and catch error
-pub fn input_reader(input: &Option<String>) -> Box<dyn FastxReader>{
+pub fn input_reader(input: &Option<String>) -> Box<dyn FastxReader> {
     match input {
-        Some(input) => {
-            match parse_fastx_file(input) {
-                Ok(reader) => reader,
-                Err(err) => {
-                    error!("{}-`{}`", err, input);
-                    std::process::exit(1);
-                }
+        Some(input) => match parse_fastx_file(input) {
+            Ok(reader) => reader,
+            Err(err) => {
+                error!("{}-`{}`", err, input);
+                std::process::exit(1);
             }
         },
         None => {
@@ -63,7 +59,7 @@ pub fn format_table_style(mut table: Table, format: &PrintFormat) -> Table {
     match format {
         PrintFormat::Markdown => {
             table.with(Style::markdown());
-        },
+        }
         PrintFormat::Tabular => {
             table
                 .with(Style::empty().vertical('\t'))
@@ -75,14 +71,20 @@ pub fn format_table_style(mut table: Table, format: &PrintFormat) -> Table {
 }
 
 fn write_ln(writer: &mut dyn Write, content: &[u8]) {
-    writer.write_all(content).map_err(|e| {
-        error!("Write fasta header failed: {}", e);
-        std::process::exit(1);
-    }).unwrap();
-    writer.write_all(b"\n").map_err(|e| {
-        error!("Write fasta header failed: {}", e);
-        std::process::exit(1);
-    }).unwrap();
+    writer
+        .write_all(content)
+        .map_err(|e| {
+            error!("Write fasta header failed: {}", e);
+            std::process::exit(1);
+        })
+        .unwrap();
+    writer
+        .write_all(b"\n")
+        .map_err(|e| {
+            error!("Write fasta header failed: {}", e);
+            std::process::exit(1);
+        })
+        .unwrap();
 }
 
 pub fn format_fasta_output(header: &str, seq: &Vec<u8>, width: Option<u8>, writer: &mut dyn Write) {
@@ -93,22 +95,21 @@ pub fn format_fasta_output(header: &str, seq: &Vec<u8>, width: Option<u8>, write
         Some(width) => {
             if width == 0 {
                 write_ln(writer, seq);
-            }
-            else {
+            } else {
                 let mut i = 0;
                 let len = seq.len();
                 while i < len {
-                let end = if i + width as usize > seq.len() {
-                    len
-                } else {
-                    i + width as usize
-                };
-                let seq_slice = &seq[i..end];
-                write_ln(writer, seq_slice);
-                i += width as usize;
+                    let end = if i + width as usize > seq.len() {
+                        len
+                    } else {
+                        i + width as usize
+                    };
+                    let seq_slice = &seq[i..end];
+                    write_ln(writer, seq_slice);
+                    i += width as usize;
+                }
             }
-            }
-        },
+        }
         None => {
             write_ln(writer, seq);
         }

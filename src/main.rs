@@ -1,15 +1,15 @@
 extern crate core;
 
-mod stats;
-mod logger;
-mod io;
 mod faidx;
+mod io;
+mod logger;
+mod stats;
 
-use clap::{Parser, Subcommand, ValueEnum};
 use crate::faidx::{create, extract};
-use crate::logger::init_logger;
-use crate::stats::{stat_all_inputs};
 use crate::io::output_writer;
+use crate::logger::init_logger;
+use crate::stats::stat_all_inputs;
+use clap::{Parser, Subcommand, ValueEnum};
 
 fn main() {
     init_logger();
@@ -21,15 +21,13 @@ fn main() {
     match &cli.command {
         Commands::Stats { input, format } => {
             stat_all_inputs(input, &mut writer, format);
-        },
-        Commands::Faidx { input, regions, .. } => {
-            match regions {
-                Some(regions) => {
-                    extract(input, regions, &mut writer, cli.line_width);
-                }
-                None => {
-                    create(input, cli.rewrite);
-                }
+        }
+        Commands::Faidx { input, regions, .. } => match regions {
+            Some(regions) => {
+                extract(input, regions, &mut writer, cli.line_width);
+            }
+            None => {
+                create(input, cli.rewrite);
             }
         },
     }
@@ -55,12 +53,17 @@ struct Cli {
     #[arg(long, short, global = true, default_value = "false")]
     rewrite: bool,
     /// Line width when outputing FASTA format (0 for no wrap)
-    #[arg(long="line-width", short='w', global = true, default_value = "60", required = false)]
+    #[arg(
+        long = "line-width",
+        short = 'w',
+        global = true,
+        default_value = "60",
+        required = false
+    )]
     line_width: Option<u8>,
     /// Subcommands
     #[command(subcommand)]
     command: Commands,
-
 }
 
 #[derive(Subcommand)]
@@ -85,7 +88,6 @@ enum Commands {
         #[arg(required = false)]
         regions: Option<Vec<String>>,
     },
-
 }
 
 #[derive(ValueEnum, Clone, Debug)]
