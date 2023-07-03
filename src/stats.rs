@@ -58,7 +58,7 @@ pub fn stat_all_inputs(
         }
     };
 
-    let mut table = Table::new(&result_vec);
+    let mut table = Table::new(result_vec);
 
     table = format_table_style(table, format);
 
@@ -144,13 +144,13 @@ fn stat(input: &Option<String>) -> FastxStat {
 
 /// count N/n bases in parallel, 78 for N, 110 for n
 fn count_n_bases_para(seq: Cow<[u8]>) -> usize {
-    let n_base_count = seq.par_iter().filter(|&&x| x == 78 || x == 110).count() as usize;
+    let n_base_count = seq.par_iter().filter(|&&x| x == 78 || x == 110).count();
     n_base_count
 }
 
 //// compute the quartiles and n50
 fn quartiles_n50_min_max(
-    len_vec: &mut Vec<usize>,
+    len_vec: &mut [usize],
     sum_len: usize,
     num_seqs: usize,
 ) -> (usize, usize, usize, usize, usize, usize) {

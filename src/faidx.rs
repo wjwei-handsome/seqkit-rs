@@ -84,19 +84,15 @@ impl ExprRegion {
         //0 +1  +2 +3 +4 +5 +6 +7 +8 0
         //0 -8  -7 -6 -5 -4 -3 -2 -1 0
         // length = 8
-        let positive_start = if start > 0 {
-            start
-        } else if start == 0 {
-            1
-        } else {
-            length as isize + start + 1
+        let positive_start = match start {
+            0 => 1,
+            _ if start > 0 => start,
+            _ => length as isize + start + 1,
         };
-        let positive_end = if end > 0 {
-            end
-        } else if end == 0 {
-            length as isize
-        } else {
-            length as isize + end + 1
+        let positive_end = match end {
+            0 => length as isize,
+            _ if end > 0 => end,
+            _ => length as isize + end + 1,
         };
         if positive_start <= positive_end {
             Some(ExprRegion {
@@ -119,26 +115,26 @@ impl From<String> for ExprRegion {
         let re_region_only_begin = Regex::new(r"^(.+?):(-?\d+)-$").unwrap();
         let re_region_only_end = Regex::new(r"^(.+?):-(-?\d+)$").unwrap();
 
-        if re_region_full.is_match(&*value) {
-            let caps = re_region_full.captures(&*value).unwrap();
+        if re_region_full.is_match(&value) {
+            let caps = re_region_full.captures(&value).unwrap();
             let name = caps.get(1).unwrap().as_str().to_string();
             let start = caps.get(2).unwrap().as_str().parse::<isize>().unwrap();
             let end = caps.get(3).unwrap().as_str().parse::<isize>().unwrap();
             ExprRegion { name, start, end }
-        } else if re_region_one_base.is_match(&*value) {
-            let caps = re_region_one_base.captures(&*value).unwrap();
+        } else if re_region_one_base.is_match(&value) {
+            let caps = re_region_one_base.captures(&value).unwrap();
             let name = caps.get(1).unwrap().as_str().to_string();
             let start = caps.get(2).unwrap().as_str().parse::<isize>().unwrap();
             let end = start;
             ExprRegion { name, start, end }
-        } else if re_region_only_begin.is_match(&*value) {
-            let caps = re_region_only_begin.captures(&*value).unwrap();
+        } else if re_region_only_begin.is_match(&value) {
+            let caps = re_region_only_begin.captures(&value).unwrap();
             let name = caps.get(1).unwrap().as_str().to_string();
             let start = caps.get(2).unwrap().as_str().parse::<isize>().unwrap();
             let end = -1;
             ExprRegion { name, start, end }
-        } else if re_region_only_end.is_match(&*value) {
-            let caps = re_region_only_end.captures(&*value).unwrap();
+        } else if re_region_only_end.is_match(&value) {
+            let caps = re_region_only_end.captures(&value).unwrap();
             let name = caps.get(1).unwrap().as_str().to_string();
             let start = 1;
             let end = caps.get(2).unwrap().as_str().parse::<isize>().unwrap();
@@ -200,7 +196,7 @@ fn get_first_line_pos(raw_seq: &[u8]) -> usize {
 }
 
 fn fill_index_records(record: SequenceRecord, offset: &mut u64, writer: &mut Box<dyn Write>) {
-    let seq_name_str = str::from_utf8(record.id().clone()).unwrap();
+    let seq_name_str = str::from_utf8(<&[u8]>::clone(&record.id())).unwrap();
     let seq_name_len = seq_name_str.len() + 1 + 1; // +1 for \n, +1 for >
     *offset += seq_name_len as u64;
     let seq_len = record.num_bases();
@@ -210,7 +206,7 @@ fn fill_index_records(record: SequenceRecord, offset: &mut u64, writer: &mut Box
     writeln!(
         writer,
         "{}\t{}\t{}\t{}\t{}",
-        seq_name_str.to_string(),
+        seq_name_str,
         seq_len,
         *offset,
         first_next_line,
@@ -227,7 +223,7 @@ fn fill_index_records(record: SequenceRecord, offset: &mut u64, writer: &mut Box
 
 const INVALID_SUFFIX: [&str; 3] = [".gz", ".xz", ".bz2"];
 
-fn check_suffix(input: &String) {
+fn check_suffix(input: &str) {
     for suffix in INVALID_SUFFIX.iter() {
         if input.ends_with(suffix) {
             error!("only support plain text file");
